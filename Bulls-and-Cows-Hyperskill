@@ -1,0 +1,186 @@
+
+package bullscows;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Random;
+import java.util.Scanner;
+
+
+class Game {
+
+    private final ArrayList<String> secretCode;
+    private ArrayList<String> playerCode;
+    private boolean guessCode;
+
+    Game() {
+        this.secretCode = new SecretCodeGenerator().secretCode();
+        Grader game = new Grader(secretCode);
+        System.out.println(SecretCodeGenerator.prepare);
+        System.out.println("Okay, let's start a game!");
+        while (!guessCode) {
+            Grader.count++;
+            System.out.printf("Turn %d: ", Grader.count);
+            Scanner s = new Scanner(System.in);
+            playerCode = new ArrayList<>(Arrays.asList(s.nextLine().split("")));
+            if (playerCode.size() != secretCode.size()) {
+                System.out.printf("Error! Enter %d digits.\n", secretCode.size());
+                Grader.count--;
+            } else {
+                game.compare(playerCode);
+                guessCode = game.result(guessCode);
+            }
+        }
+        System.out.println("Congratulations! You guessed the secret code.");
+    }
+
+}
+
+class SecretCodeGenerator {
+
+    private int length;
+    private int numOfSymbols;
+    private boolean correctCode;
+    private final StringBuilder passwordSymbols = new StringBuilder();
+    public static StringBuilder prepare;
+
+    ArrayList<String> secretCode() {
+        Scanner s = new Scanner(System.in);
+        System.out.print("Please, enter the secret code's length: ");
+        String lengthCheck = s.nextLine().trim();
+        for (int i = 0; i < lengthCheck.length(); i++) {
+            char ch = 58;
+            for (int j = 58; j < 127; j++) {
+                if (ch == lengthCheck.charAt(i)) {
+                    System.out.printf("Error: \"%s\" isn't a valid number.", lengthCheck);
+                    System.exit(0);
+                }
+                ch++;
+            }
+        }
+        this.length = Integer.parseInt(lengthCheck);
+        if (length == 0) {
+            System.out.println("Error: must be more than 0");
+            System.exit(0);
+        }
+        System.out.print("Input the number of possible symbols in the code: ");
+        String numOfSymbolsCheck = s.nextLine().trim();
+        for (int i = 0; i < numOfSymbolsCheck.length(); i++) {
+            char ch = 58;
+            for (int j = 58; j < 127; j++) {
+                if (ch == numOfSymbolsCheck.charAt(i)) {
+                    System.out.printf("Error: \"%s\" isn't a valid number.", numOfSymbolsCheck);
+                    System.exit(0);
+                }
+                ch++;
+            }
+        }
+        this.numOfSymbols = Integer.parseInt(numOfSymbolsCheck);
+        if (numOfSymbols < length) {
+            System.out.printf("Error: it's not possible to generate a code with a length of %d with %d unique symbols.", length, numOfSymbols);
+            System.exit(0);
+        }
+        if (numOfSymbols > 36) {
+            System.out.println("Error: maximum number of possible symbols in the code is 36 (0-9, a-z).");
+            System.exit(0);
+        }
+
+        prepare = new StringBuilder("The secret is prepared:  (0-9, a-");
+        for (int i = 0; i < length; i++) {
+            prepare.insert(24, '*');
+        }
+
+        char numbers = 48;
+        char symbols = 97;
+
+        for (int i = 0; i < numOfSymbols; i++) {
+            if (i < 10) {
+                passwordSymbols.append(numbers);
+                numbers++;
+            }   else {
+                passwordSymbols.append(symbols);
+                symbols++;
+            }
+        }
+        prepare.append(passwordSymbols.charAt(passwordSymbols.length() - 1)).append(")");
+        StringBuilder secretCode = new StringBuilder();
+        while (!correctCode) {
+            Random rand = new Random(System.nanoTime());
+            secretCode.append(passwordSymbols.charAt(Math.abs(rand.nextInt(numOfSymbols))));
+            if (length == 1) {
+                correctCode = true;
+            } else {
+                for (int i = 1; i < length; i++) {
+                    secretCode.append(passwordSymbols.charAt(Math.abs(rand.nextInt(numOfSymbols))));
+                    for (int j = 0; j < secretCode.length() - 1; j++) {
+                        if (secretCode.charAt(i) == secretCode.charAt(j)) {
+                            secretCode.delete(0, secretCode.length());
+                        }
+                    }
+                    if (secretCode.length() == 0) {
+                        break;
+                    }
+                }
+            }
+            if (secretCode.length() == length){
+                correctCode = true;
+            }
+        }
+
+        ArrayList<String> code = new ArrayList<>(Arrays.asList(secretCode.toString().split("")));
+        return code;
+    }
+}
+
+class Grader {
+
+    private final ArrayList<String> secretCode;
+    public static int count = 0;
+    int bulls;
+    int cows;
+
+    Grader(ArrayList<String> secretCode) {
+        this.secretCode = secretCode;
+    }
+
+    public void compare(ArrayList<String> playerCode) {
+        ArrayList<String> playerAnswer = new ArrayList<>(playerCode);
+        bulls = 0;
+        cows = 0;
+        for (int i = 0; i < playerAnswer.size(); i++) {
+            if (secretCode.get(i).equals(playerAnswer.get(i))) {
+                bulls++;
+            }   else {
+                for (String j : secretCode) {
+                    if (j.equals(playerAnswer.get(i))) {
+                        cows++;
+                    }
+                }
+            }
+        }
+
+    }
+    public boolean result(boolean guessStatus) {
+        if (bulls == secretCode.size()) {
+            System.out.printf("Grade: %d bull(s).\n", bulls);
+            guessStatus = true;
+        }   else if (bulls > 0 && cows > 0) {
+            System.out.printf("Grade: %d bull(s) and %d cow(s).\n", bulls, cows);
+        }   else if (bulls == 0 && cows > 0) {
+            System.out.printf("Grade: %d cow(s).\n", cows);
+        }   else if (bulls > 0 && bulls < secretCode.size()) {
+            System.out.printf("Grade: %d bull(s).\n", bulls);
+        }   else {
+            System.out.print("Grade: None.\n");
+        }
+        return guessStatus;
+    }
+}
+
+public class Main {
+
+    public static void main(String[] args) {
+        new Game();
+
+    }
+}
